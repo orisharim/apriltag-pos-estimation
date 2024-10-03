@@ -3,9 +3,9 @@ import numpy as np
 from dt_apriltags import Detector
 import cv2 as cv
 
-HEIGHT = 720
+HEIGHT = 800
 WIDTH = 1280
-FOV_X = math.radians(61)
+FOV_X = math.radians(70)
 FOV_Y = math.radians(37)
 FOCAL_LENGTH_X = WIDTH / (2.0 * math.tan(FOV_X / 2.0))
 FOCAL_LENGTH_Y = HEIGHT / (2.0 * math.tan(FOV_Y / 2.0))
@@ -36,7 +36,14 @@ def draw_tags(image, detections):
 
 
 def main():
-    img = cv.imread('./2024VisionSampleImages/Amp_85in.jpg')
+    cap = cv.VideoCapture(0)
+    cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc('M','J', 'P', 'G'))
+    cap.set(cv.CAP_PROP_FRAME_WIDTH,1280)
+    cap.set(cv.CAP_PROP_FRAME_HEIGHT, 720)
+    cap.set(cv.CAP_PROP_FPS, 120)
+    cap.set(cv.CAP_PROP_AUTO_EXPOSURE, 3)
+    cap.set(cv.CAP_PROP_EXPOSURE, 100)
+
 
     detector = Detector(searchpath=['apriltags'],
                         families='tag36h11',
@@ -47,16 +54,29 @@ def main():
                         decode_sharpening=0.25,
                         debug=0)
 
-    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-    tags = detector.detect(gray,
+    while True:
+        ret, frame = cap.read()
+        
+        if not ret:
+            print('couldn\'t get camera input')
+            continue
+
+        frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+        tags = detector.detect(frame,
                            estimate_tag_pose=True,
                            camera_params=[FOCAL_LENGTH_X, FOCAL_LENGTH_Y, WIDTH/2.0, HEIGHT/2.0],
                            tag_size=0.165)
 
-    draw_tags(img, tags)
-    print(tags[0].pose_t)
-    cv.imshow('window', img)
-    cv.waitKey(0)
+        draw_tags(frame, tags)
+        cv.imshow('frame', frame)
+        if len(tags) != 0:
+            print(tags[0].pose_t)
+
+        # Press 'q' to exit the loop
+        if cv.waitKey(1) == ord('q'):
+            break
+
+    cap.release()
     cv.destroyAllWindows()
 
 
