@@ -26,8 +26,10 @@ def draw_tags(image, detections):
 
 def estimate_robot_pos(tag: Detection):
     tag_id = tag.tag_id
-    # extrinsicMatrix = 
-    print()
+    tag_camera_oriented = consts.APRIL_TAG_MATRIX @ tag.pose_t @ tag.pose_R
+    extrinsicMatrix = tag_camera_oriented @ consts.TAGS_INVERSE[tag_id]
+    print(extrinsicMatrix)
+    
 
 def main():
     #setup camera
@@ -61,7 +63,7 @@ def main():
         tags = detector.detect(frame,
                            estimate_tag_pose=True,
                            camera_params=[consts.FOCAL_LENGTH_X, consts.FOCAL_LENGTH_Y, consts.WIDTH/2.0, consts.HEIGHT/2.0],
-                           tag_size=0.165)
+                           tag_size=consts.SIDE_LENGTH)
         
         draw_tags(frame, tags)
         cv.imshow('frame', frame)
