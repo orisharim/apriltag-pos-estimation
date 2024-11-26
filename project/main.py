@@ -4,7 +4,7 @@ from dt_apriltags import Detection
 from dt_apriltags import Detector
 import cv2 as cv
 import consts
-import UtilFuncs
+import UtilFuncs as utils
 
 # Function to draw bounding boxes and tag IDs on the image
 def draw_tags(image, detections):
@@ -26,15 +26,21 @@ def draw_tags(image, detections):
 
 def estimate_robot_pos(tag: Detection):
     tag_id = tag.tag_id
-    tag_pos_vec = np.array([tag.pose_t[0][0], tag.pose_t[1][0], tag.pose_t[2][0], 1.0]) 
-    tag_pos_mat_camera_oriented = UtilFuncs.get_affine_april_tag_position_matrix(tag_pos_vec)
-    extrinsic_matrix = tag_pos_mat_camera_oriented @ consts.TAGS_INVERSE[tag_id]
     
+    #calculate tag center point translation camera oriented
+    tag_translation = utils.matrix_3x3_to_affine_matrix(tag.pose_R)
+    tag_translation[0][3] = tag.pose_t[0][0]
+    tag_translation[1][3] = tag.pose_t[1][0]
+    tag_translation[2][3] = tag.pose_t[2][0]
+    
+    #calcuate a matrix that represents the translation of 4 points on the tag
+    tag_points_translation = tag_translation @ consts.APRIL_TAG_POINTS_MATRIX
+    
+    extrinsic_matrix = tag_points_translation @ consts.TAGS_INVERSE[tag_id]
     #stolen functions from nadav. edit code later
-    pos_estimation = UtilFuncs.extrinsic_matrix_to_camera_position(extrinsic_matrix)
-    rot_estimation = UtilFuncs.extrinsic_matrix_to_rotation(extrinsic_matrix)
-    print(rot_estimation)
-    
+    pos_estimation = utils.extrinsic_matrix_to_camera_position(extrinsic_matrix)
+    rot_estimation = utils.extrinsic_matrix_to_rotation(extrinsic_matrix)
+    print(pos_estimation)
 
 def main():
     #setup camera

@@ -36,6 +36,11 @@ TAGS = {1: (593.68, 9.68, 53.38, 120, 0, 0), #x, z, y, yaw pitch roll
         16: (182.73, 146.19, 52.00, 240, 0 ,0)
         }
 
+APRIL_TAG_POINTS_MATRIX = np.array([[SIDE_LENGTH / 2, 0, 0, 0],
+                              [0, SIDE_LENGTH / 2, 0, 0],
+                              [0, 0, SIDE_LENGTH / 2, 0],
+                              [1, 1, 1, 1]])
+
 def get_inv_tag_matrix(tag_id):
         return np.linalg.inv(
                         np.array([[1, 0, 0, utils.inches_to_meter(TAGS[tag_id][0])],
@@ -45,12 +50,7 @@ def get_inv_tag_matrix(tag_id):
                         @ utils.get_affine_rotation_matrix(math.radians(TAGS[tag_id][3]),
                                                            math.radians(TAGS[tag_id][4]),
                                                            math.radians(TAGS[tag_id][5]))
-                        #turn it into the shape that utils.get_affine_april_tag_position_matrix creates from a vector
-                        @ np.array([[SIDE_LENGTH / 2, 0, 0, 0],
-                                    [0, SIDE_LENGTH / 2, 0, 0],
-                                    [0, 0, SIDE_LENGTH / 2, 0],
-                                    [1, 1, 1, 1]])
-                
+                        @ APRIL_TAG_POINTS_MATRIX
         )
 
 

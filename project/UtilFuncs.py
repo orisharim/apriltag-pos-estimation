@@ -5,6 +5,14 @@ import math
 def inches_to_meter(inches):
     return inches * 0.0254
 
+def matrix_3x3_to_affine_matrix(matrix):
+    return np.array([
+        [matrix[0][0], matrix[0][1], matrix[0][2], 0],
+        [matrix[1][0], matrix[1][1], matrix[1][2], 0],
+        [matrix[2][0], matrix[2][1], matrix[2][2], 0],
+        [0, 0, 0, 1]
+    ])
+
 def get_affine_rotation_matrix(yaw=0.0, pitch=0.0, roll=0.0) -> np.ndarray:
     c1 = np.cos(pitch)
     s1 = np.sin(pitch)
@@ -16,17 +24,6 @@ def get_affine_rotation_matrix(yaw=0.0, pitch=0.0, roll=0.0) -> np.ndarray:
                      [c1 * s3 + c3 * s1 * s2, c1 * c3 - s1 * s2 * s3, -c2 * s1, 0],
                      [s1 * s3 - c1 * c3 * s2, c3 * s1 + c1 * s2 * s3, c1 * c2, 0],
                      [0, 0, 0, 1]])
-    
-
-#get a vector that defines the position of an april tag(camera oriented/ field oriented)
-#and return a matrix that contains 4 points on the april tag
-def get_affine_april_tag_position_matrix(vec_pos):
-    return np.array([
-        [vec_pos[0], vec_pos[0] + 0.5 * consts.SIDE_LENGTH, vec_pos[0], vec_pos[0]],
-        [vec_pos[1], vec_pos[1], vec_pos[1] + 0.5 * consts.SIDE_LENGTH, vec_pos[1]],
-        [vec_pos[2], vec_pos[2], vec_pos[2], vec_pos[2] + 0.5 * consts.SIDE_LENGTH],
-        [1.0, 1.0, 1.0, 1.0]
-    ])
     
 #stolen functions from nadav. edit code later
 def extrinsic_matrix_to_camera_position(extrinsic_matrix: np.ndarray) -> np.ndarray:
@@ -56,4 +53,5 @@ def extrinsic_matrix_to_rotation(extrinsic_matrix: np.ndarray) -> list[float]:
     roll = math.atan2(extrinsic_matrix[1, 0], extrinsic_matrix[0, 0])
 
     return [math.degrees(yaw), math.degrees(pitch), math.degrees(roll)]
+    # return [yaw, pitch, roll]
 
