@@ -1,10 +1,10 @@
 import math
 import numpy as np
-from dt_apriltags import Detector
 from dt_apriltags import Detection
+from dt_apriltags import Detector
 import cv2 as cv
 import consts
-
+import UtilFuncs
 
 # Function to draw bounding boxes and tag IDs on the image
 def draw_tags(image, detections):
@@ -18,7 +18,7 @@ def draw_tags(image, detections):
 
         # Draw the bounding box
         cv.polylines(image, [np.array([ptA, ptB, ptC, ptD], dtype=np.int32)], isClosed=True, color=(0, 255, 0),
-                      thickness=2)
+                      thickness=3)
 
         # Draw the tag ID
         tag_id = tag.tag_id
@@ -26,14 +26,19 @@ def draw_tags(image, detections):
 
 def estimate_robot_pos(tag: Detection):
     tag_id = tag.tag_id
-    tag_camera_oriented = consts.APRIL_TAG_MATRIX @ tag.pose_t @ tag.pose_R
-    extrinsicMatrix = tag_camera_oriented @ consts.TAGS_INVERSE[tag_id]
-    print(extrinsicMatrix)
+    tag_pos_vec = np.array([tag.pose_t[0][0], tag.pose_t[1][0], tag.pose_t[2][0], 1.0]) 
+    tag_pos_mat_camera_oriented = UtilFuncs.get_affine_april_tag_position_matrix(tag_pos_vec)
+    extrinsic_matrix = tag_pos_mat_camera_oriented @ consts.TAGS_INVERSE[tag_id]
+    
+    #stolen functions from nadav. edit code later
+    pos_estimation = UtilFuncs.extrinsic_matrix_to_camera_position(extrinsic_matrix)
+    rot_estimation = UtilFuncs.extrinsic_matrix_to_rotation(extrinsic_matrix)
+    print(rot_estimation)
     
 
 def main():
     #setup camera
-    cap = cv.VideoCapture(0)
+    cap = cv.VideoCapture(2)
     cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc('M','J', 'P', 'G'))
     cap.set(cv.CAP_PROP_FRAME_WIDTH,1280)
     cap.set(cv.CAP_PROP_FRAME_HEIGHT, 720)
@@ -54,7 +59,6 @@ def main():
     while True:
         ret, frame = cap.read()
         
-        
         if not ret:
             print('couldn\'t get camera input')
             continue
@@ -68,9 +72,9 @@ def main():
         draw_tags(frame, tags)
         cv.imshow('frame', frame)
         if len(tags) != 0:
-            rotation, _ = cv.Rodrigues(tags[0].pose_R)
-            rotation = np.array([math.degrees(rotation[0]), math.degrees(rotation[1]), math.degrees(rotation[2])]) # pitch yaw roll
-            print(rotation)
+            #rotation, _ = cv.Rodrigues(tags[0].pose_R)
+            #rotation = np.array([math.degrees(rotation[0]), math.degrees(rotation[1]), math.degrees(rotation[2])]) # pitch yaw roll
+            estimate_robot_pos(tags[0])
         # Press 'q' to exit the loop
         if cv.waitKey(1) == ord('q'):
             break
