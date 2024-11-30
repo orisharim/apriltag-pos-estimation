@@ -1,5 +1,5 @@
 import numpy as np
-import consts
+import parameters
 import math
 
 def inches_to_meter(inches):

@@ -3,10 +3,14 @@ import numpy as np
 from dt_apriltags import Detection
 from dt_apriltags import Detector
 import cv2 as cv
-import consts
-import UtilFuncs as utils
+import parameters
+import utils as utils
+import field_displayer
 
-# Function to draw bounding boxes and tag IDs on the image
+robot_pos = [0, 0, 0]
+robot_rot = [0, 0, 0]
+
+# Draw bounding boxes and tag IDs on the image
 def draw_tags(image, detections):
     for tag in detections:
         # Get the bounding box coordinates
@@ -24,25 +28,31 @@ def draw_tags(image, detections):
         tag_id = tag.tag_id
         cv.putText(image, f"ID: {tag_id}", ptA, cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
-def estimate_robot_pos(tag: Detection):
-    tag_id = tag.tag_id
+
     
+
+# Calculate robot position and rotation based on a single april tag detection
+def estimate_robot_state(tag: Detection):
+    tag_id = tag.tag_id
+        
     #calculate tag center point translation camera oriented
     tag_translation = utils.matrix_3x3_to_affine_matrix(tag.pose_R)
-    tag_translation[0][3] = tag.pose_t[0][0]
-    tag_translation[1][3] = tag.pose_t[1][0]
-    tag_translation[2][3] = tag.pose_t[2][0]
+    tag_translation[0][3] = tag.pose_t[2][0]
+    tag_translation[1][3] = tag.pose_t[1][0] 
+    tag_translation[2][3] = tag.pose_t[0][0]
     
     #calcuate a matrix that represents the translation of 4 points on the tag
-    tag_points_translation = tag_translation @ consts.APRIL_TAG_POINTS_MATRIX
+    tag_points_translation = tag_translation @ parameters.TRANSFORMATION_TO_POINTS_ON_TAG_MATRIX
     
-    extrinsic_matrix = tag_points_translation @ consts.TAGS_INVERSE[tag_id]
+    extrinsic_matrix = tag_points_translation @ parameters.TAGS_INVERSE[tag_id]
     #stolen functions from nadav. edit code later
     pos_estimation = utils.extrinsic_matrix_to_camera_position(extrinsic_matrix)
     rot_estimation = utils.extrinsic_matrix_to_rotation(extrinsic_matrix)
-    print(pos_estimation)
+    return (pos_estimation, rot_estimation)
 
 def main():
+    global robot_pos, robot_rot
+    
     #setup camera
     cap = cv.VideoCapture(2)
     cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc('M','J', 'P', 'G'))
@@ -62,6 +72,8 @@ def main():
                         decode_sharpening=0.25,
                         debug=0)
     
+    field_displayer.start()
+    
     while True:
         ret, frame = cap.read()
         
@@ -72,18 +84,21 @@ def main():
         frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
         tags = detector.detect(frame,
                            estimate_tag_pose=True,
-                           camera_params=[consts.FOCAL_LENGTH_X, consts.FOCAL_LENGTH_Y, consts.WIDTH/2.0, consts.HEIGHT/2.0],
-                           tag_size=consts.SIDE_LENGTH)
+                           camera_params=[parameters.FOCAL_LENGTH_X, parameters.FOCAL_LENGTH_Y, parameters.SCREEN_WIDTH/2.0, parameters.SCREEN_HEIGHT/2.0],
+                           tag_size=parameters.SIDE_LENGTH)
         
         draw_tags(frame, tags)
         cv.imshow('frame', frame)
         if len(tags) != 0:
-            #rotation, _ = cv.Rodrigues(tags[0].pose_R)
-            #rotation = np.array([math.degrees(rotation[0]), math.degrees(rotation[1]), math.degrees(rotation[2])]) # pitch yaw roll
-            estimate_robot_pos(tags[0])
-        # Press 'q' to exit the loop
-        if cv.waitKey(1) == ord('q'):
-            break
+            # print(tags[0].pose_t)
+            pos_estimation, rot_estimation = estimate_robot_state(tags[0])
+            print(f'pos: {pos_estimation} \n rot:{rot_estimation}\n')
+            robot_pos = pos_estimation
+            robot_rot = rot_estimation
+            field_displayer.update_state(robot_pos, robot_rot)
+
+            
+        cv.waitKey(1)
 
     cap.release()
     cv.destroyAllWindows()

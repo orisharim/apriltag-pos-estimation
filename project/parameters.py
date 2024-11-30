@@ -1,15 +1,19 @@
 import math
 import numpy as np
-import UtilFuncs as utils
+import utils as utils
 
-HEIGHT = 800
-WIDTH = 1280
+DISPLAY_FIELD = True
+
+SCREEN_HEIGHT = 720
+SCREEN_WIDTH = 1280
 FOV_X = math.radians(70)
 FOV_Y = math.radians(37)
-FOCAL_LENGTH_X = WIDTH / (2.0 * math.tan(FOV_X / 2.0))
-FOCAL_LENGTH_Y = HEIGHT / (2.0 * math.tan(FOV_Y / 2.0))
+
+FOCAL_LENGTH_X = SCREEN_WIDTH / (2.0 * math.tan(FOV_X / 2.0))
+FOCAL_LENGTH_Y = SCREEN_HEIGHT / (2.0 * math.tan(FOV_Y / 2.0))
 FOCAL_LENGTH_X =  914.00853817
 FOCAL_LENGTH_Y = 912.67983772
+
 INTRINSIC_CAMERA_MATRIX = np.array([[914.00853817,0,694.05095984, 0],
  [  0,912.67983772 ,420.86995412, 0],
  [  0,           0,           1,        0]])
@@ -18,7 +22,10 @@ SIDE_LENGTH = 0.1651
 FIELD_HEIGHT = 8.21055
 FIELD_WIDTH = 16.54175
 
-TAGS = {1: (593.68, 9.68, 53.38, 120, 0, 0), #x, z, y, yaw pitch roll
+ROBOT_CHASSIS_WIDTH = 1
+ROBOT_CHASSIS_HEIGHT = 1
+
+TAGS = {1: (593.68, 9.68, 53.38, 120, 0, 0), #x, y, z, yaw pitch roll
         2: (637.21, 34.79, 53.38, 120, 0, 0),
         3: (652.73, 196.17, 57.13, 180, 0, 0),
         4: (652.73, 218.42, 57.13, 180, 0 ,0),
@@ -36,10 +43,12 @@ TAGS = {1: (593.68, 9.68, 53.38, 120, 0, 0), #x, z, y, yaw pitch roll
         16: (182.73, 146.19, 52.00, 240, 0 ,0)
         }
 
-APRIL_TAG_POINTS_MATRIX = np.array([[SIDE_LENGTH / 2, 0, 0, 0],
-                              [0, SIDE_LENGTH / 2, 0, 0],
-                              [0, 0, SIDE_LENGTH / 2, 0],
-                              [1, 1, 1, 1]])
+
+
+TRANSFORMATION_TO_POINTS_ON_TAG_MATRIX = np.array([[SIDE_LENGTH / 2, 0, 0, 0],
+                                   [0, SIDE_LENGTH / 2, 0, 0],
+                                   [0, 0, SIDE_LENGTH / 2, 0],
+                                   [1, 1, 1, 1]])
 
 def get_inv_tag_matrix(tag_id):
         return np.linalg.inv(
@@ -50,7 +59,7 @@ def get_inv_tag_matrix(tag_id):
                         @ utils.get_affine_rotation_matrix(math.radians(TAGS[tag_id][3]),
                                                            math.radians(TAGS[tag_id][4]),
                                                            math.radians(TAGS[tag_id][5]))
-                        @ APRIL_TAG_POINTS_MATRIX
+                        @ TRANSFORMATION_TO_POINTS_ON_TAG_MATRIX
         )
 
 
