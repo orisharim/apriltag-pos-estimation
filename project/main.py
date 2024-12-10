@@ -29,20 +29,40 @@ def draw_tags(image, detections):
         cv.putText(image, f"ID: {tag_id}", ptA, cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
 
-    
-
 # Calculate robot position and rotation based on a single april tag detection
 def estimate_robot_state(tag: Detection):
     tag_id = tag.tag_id
-        
+    
     #calculate tag center point translation camera oriented
-    tag_translation = utils.matrix_3x3_to_affine_matrix(tag.pose_R)
-    tag_translation[0][3] = tag.pose_t[2][0]
-    tag_translation[1][3] = tag.pose_t[1][0] 
-    tag_translation[2][3] = tag.pose_t[0][0]
+    tag_transformation = utils.matrix_3x3_to_affine_matrix(tag.pose_R)
+    tag_transformation[0][3] = tag.pose_t[0][0]
+    tag_transformation[1][3] = tag.pose_t[1][0]
+    tag_transformation[2][3] = tag.pose_t[2][0]
     
     #calcuate a matrix that represents the translation of 4 points on the tag
-    tag_points_translation = tag_translation @ parameters.TRANSFORMATION_TO_POINTS_ON_TAG_MATRIX
+    tag_points_translation = tag_transformation @ parameters.TRANSFORMATION_TO_POINTS_ON_TAG_MATRIX
+    
+    extrinsic_matrix = tag_points_translation @ parameters.TAGS_INVERSE[tag_id]
+    #stolen functions from nadav. edit code later
+    pos_estimation = utils.extrinsic_matrix_to_camera_position(extrinsic_matrix)
+    rot_estimation = utils.extrinsic_matrix_to_rotation(extrinsic_matrix)
+    return (pos_estimation, rot_estimation)
+
+def estimate_robot_state_debug(tag):
+    tag_id = tag.tag_id
+    
+    #calculate tag center point translation camera oriented
+    tag_transformation = utils.matrix_3x3_to_affine_matrix(tag.pose_R)
+    tag_transformation[0][3] = tag.pose_t[0][0]
+    tag_transformation[1][3] = tag.pose_t[1][0]
+    tag_transformation[2][3] = tag.pose_t[2][0]
+    tag_transformation = np.array([[0, 0, 1, 0],
+                                   [1, 0, 0, 0],
+                                   [0, 1, 0, 0],
+                                   [0, 0, 0, 1]]) @ tag_transformation
+    
+    #calcuate a matrix that represents the translation of 4 points on the tag
+    tag_points_translation = tag_transformation @ parameters.TRANSFORMATION_TO_POINTS_ON_TAG_MATRIX
     
     extrinsic_matrix = tag_points_translation @ parameters.TAGS_INVERSE[tag_id]
     #stolen functions from nadav. edit code later
@@ -54,10 +74,10 @@ def main():
     global robot_pos, robot_rot
     
     #setup camera
-    cap = cv.VideoCapture(2)
+    cap = cv.VideoCapture(3)
     cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc('M','J', 'P', 'G'))
     cap.set(cv.CAP_PROP_FRAME_WIDTH,1280)
-    cap.set(cv.CAP_PROP_FRAME_HEIGHT, 720)
+    cap.set(cv.CAP_PROP_FRAME_HEIGHT, 800)
     cap.set(cv.CAP_PROP_FPS, 120)
     cap.set(cv.CAP_PROP_AUTO_EXPOSURE, 3)
     cap.set(cv.CAP_PROP_EXPOSURE, 100)
@@ -90,12 +110,14 @@ def main():
         draw_tags(frame, tags)
         cv.imshow('frame', frame)
         if len(tags) != 0:
-            # print(tags[0].pose_t)
+            # print(tags[0])
             pos_estimation, rot_estimation = estimate_robot_state(tags[0])
+           
             print(f'pos: {pos_estimation} \n rot:{rot_estimation}\n')
             robot_pos = pos_estimation
             robot_rot = rot_estimation
-            field_displayer.update_state(robot_pos, robot_rot)
+            field_displayer.update_state(np.array([robot_pos[0], robot_pos[1], robot_pos[2]]), robot_rot)
+            
 
             
         cv.waitKey(1)
@@ -107,6 +129,3 @@ def main():
 if __name__ == '__main__':
     main()
 
-
-def estimate_robot_pos():
-    print('a')

@@ -13,6 +13,33 @@ def matrix_3x3_to_affine_matrix(matrix):
         [0, 0, 0, 1]
     ])
 
+import numpy as np
+
+def rotation_matrix_to_euler_angles(R):
+    """
+    Convert a 3x3 rotation matrix to Euler angles (yaw, pitch, and roll).
+
+    Parameters:
+        R (np.ndarray): 3x3 rotation matrix.
+
+    Returns:
+        tuple: (yaw, pitch, roll) in radians.
+    """
+    sy = np.sqrt(R[0, 0] ** 2 + R[1, 0] ** 2)
+    
+    singular = sy < 1e-6
+
+    if not singular:
+        yaw = np.arctan2(R[1, 0], R[0, 0])
+        pitch = np.arctan2(-R[2, 0], sy)
+        roll = np.arctan2(R[2, 1], R[2, 2])
+    else:
+        yaw = np.arctan2(-R[1, 2], R[1, 1])
+        pitch = np.arctan2(-R[2, 0], sy)
+        roll = 0
+
+    return yaw, pitch, roll
+
 def get_affine_rotation_matrix(yaw=0.0, pitch=0.0, roll=0.0) -> np.ndarray:
     c1 = np.cos(pitch)
     s1 = np.sin(pitch)

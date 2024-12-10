@@ -18,6 +18,7 @@ def start():
     global field_img, meters_to_pixels_x, meters_to_pixels_y
     field_img = cv.resize(field_img, (parameters.SCREEN_WIDTH, parameters.SCREEN_HEIGHT))
     field_img = cv.flip(field_img, 0)
+    # __draw_tags_on_field(field_img)
     update_state([0,0,0], [0,0,0])
     
 def update_state(pos, rot):
@@ -66,6 +67,9 @@ def __pos_to_pixels(point_x, point_y):
             ((parameters.FIELD_HEIGHT - point_y) * meters_to_pixels_y),
             1)       
      
-
+def __draw_tags_on_field(field_img):
+    for i in parameters.TAGS.keys():
+         __draw_robot(field_img, utils.inches_to_meter(parameters.TAGS[i][0]), utils.inches_to_meter(parameters.TAGS[i][1]), parameters.TAGS[i][3])
+    return field_img
     
             
