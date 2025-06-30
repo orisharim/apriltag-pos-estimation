@@ -43,7 +43,7 @@ def estimate_robot_state(tag: Detection):
     tag_points_translation = tag_transformation @ parameters.TRANSFORMATION_TO_POINTS_ON_TAG_MATRIX
     
     extrinsic_matrix = tag_points_translation @ parameters.TAGS_INVERSE[tag_id]
-    #stolen functions from nadav. edit code later
+
     pos_estimation = utils.extrinsic_matrix_to_camera_position(extrinsic_matrix)
     rot_estimation = utils.extrinsic_matrix_to_rotation(extrinsic_matrix)
     return (pos_estimation, rot_estimation)
